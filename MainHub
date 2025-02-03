@@ -1,5 +1,9 @@
 local HttpService = game:GetService("HttpService")
 local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local GuiService = game:GetService("GuiService")
+local Players = game:GetService("Players")
+local Camera = workspace.CurrentCamera
 
 local configFile = "voltex_config.json"
 
@@ -54,128 +58,256 @@ uiSettingsTab:Button("Destroy Gui", function()
     game.CoreGui["Library"]:Destroy()
 end)
 
-local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
-ScreenGui.Name = "VoltexHubUI"
+-- Change UI Visibility to Toggle Button
+local uiVisibilityButton = settings["UI_Visible"] or Enum.KeyCode.Unknown
+uiSettingsTab:Dropdown("Choose Gui Toggle Button", {"Unknown", "F", "G", "H", "J", "K", "L", "M", "N", "O", "Quote"}, function(state)
+    uiVisibilityButton = Enum.KeyCode[state]
+    UpdateSetting("UI_Visible", uiVisibilityButton)
+end, uiVisibilityButton.Name)
 
-local ToggleButton = Instance.new("TextButton", ScreenGui)
-ToggleButton.Size = UDim2.new(0, 50, 0, 50)
-ToggleButton.Position = settings["SquareUI_Pos"] or UDim2.new(1, -60, 0, 10)
-ToggleButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-ToggleButton.Text = "☰"
-ToggleButton.TextSize = 30
-ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-ToggleButton.BorderSizePixel = 2
-ToggleButton.BorderColor3 = Color3.fromRGB(0, 0, 0)
+local aimbotEnabled = false
+local espOpen = false
+local povEnabled = false
+local povCircle
+local povSize = settings["POV_Size"] or 250  -- Increased POV size to 250
+local isMobile = UserInputService.TouchEnabled -- Check if device is mobile
+local isPC = not isMobile  -- Determine if it's a PC
+local noRecoil = false -- Default recoil state
+local aimingAtPlayer = nil  -- Track if we are locked onto a player
 
-local uiVisible = settings["UI_Visible"] ~= false
-local function ToggleUI()
-    uiVisible = not uiVisible
-    UpdateSetting("UI_Visible", uiVisible)
-
-    if uiVisible then
-        win:Show()
-        ToggleButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
-    else
-        win:Hide()
-        ToggleButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-    end
+-- Function to create a bigger POV circle
+local function CreatePOVCircle()
+    if povCircle then povCircle:Remove() end
+    povCircle = Drawing.new("Circle")
+    povCircle.Color = Color3.fromRGB(255, 0, 0)
+    povCircle.Thickness = 2
+    povCircle.Radius = povSize  -- Use the updated size
+    povCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+    povCircle.Visible = povEnabled
 end
 
-ToggleButton.MouseButton1Click:Connect(function()
-    ToggleUI()
-end)
-
-local draggingEnabled = settings["SquareUIDrag"] or true
-local dragActive = false
-local dragInput, dragStart, startPos
-
-local function UpdateDrag(input)
-    local delta = input.Position - dragStart
-    ToggleButton.Position = UDim2.new(0, startPos.X.Offset + delta.X, 0, startPos.Y.Offset + delta.Y)
-    UpdateSetting("SquareUI_Pos", ToggleButton.Position)
-end
-
-ToggleButton.InputBegan:Connect(function(input)
-    if draggingEnabled and (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) then
-        dragActive = true
-        dragStart = input.Position
-        startPos = ToggleButton.Position
-
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
-                dragActive = false
-            end
-        end)
-    end
-end)
-
-ToggleButton.InputChanged:Connect(function(input)
-    if dragActive and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-        dragInput = input
-    end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-    if input == dragInput and dragActive then
-        UpdateDrag(input)
-    end
-end)
-
-uiSettingsTab:Toggle("Enable Dragging for Square UI", function(state)
-    UpdateSetting("SquareUIDrag", state)
-    draggingEnabled = state
-end, settings["SquareUIDrag"])
-
-local walkSpeed = settings["WalkSpeed"] or 16
-game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = walkSpeed
-
-clientTab:Textbox("Set Walk Speed", function(value)
-    local num = tonumber(value)
-    if num then
-        game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = num
-        UpdateSetting("WalkSpeed", num)
-        print("Walk speed set to: " .. num)
-    end
-end, tostring(walkSpeed))
-
-local player = game.Players.LocalPlayer
-
-player.CharacterAdded:Connect(function(character)
-    task.wait(1)
-
-    if settings["UI_Visible"] then
-        win:Show()
-    end
-    
-    local humanoid = character:FindFirstChildOfClass("Humanoid")
-    if humanoid then
-        humanoid.WalkSpeed = settings["WalkSpeed"] or 16
-    end
+mainTab:Button("Aimbot", function()
+    aimbotEnabled = not aimbotEnabled
+    espOpen = false
+    UpdateSetting("Aimbot_Enabled", aimbotEnabled)
+    UpdateSetting("ESP_Open", espOpen)
 end)
 
 mainTab:Toggle("Enable Aimbot", function(state)
+    aimbotEnabled = state
     UpdateSetting("Aimbot_Enabled", state)
-    if state then
-        print("Aimbot Enabled")
-    else
-        print("Aimbot Disabled")
-    end
 end, settings["Aimbot_Enabled"] or false)
 
-mainTab:Toggle("Enable Trigger Bot", function(state)
-    UpdateSetting("TriggerBot_Enabled", state)
-    if state then
-        print("Trigger Bot Enabled")
+mainTab:Toggle("Wall Check", function(state)
+    UpdateSetting("WallCheck", state)
+end, settings["WallCheck"] or false)
+
+mainTab:Toggle("Highlight Target", function(state)
+    UpdateSetting("HighlightTarget", state)
+end, settings["HighlightTarget"] or false)
+
+mainTab:Toggle("No-Recoil", function(state)
+    noRecoil = state
+    UpdateSetting("NoRecoil", state)
+end, settings["NoRecoil"] or false)
+
+mainTab:Slider("POV Size", 10, 400, povSize, function(value)
+    povSize = value
+    CreatePOVCircle()
+    UpdateSetting("POV_Size", povSize)
+end)
+
+mainTab:Toggle("POV", function(state)
+    povEnabled = state
+    UpdateSetting("POV_Enabled", state)
+    if povEnabled then
+        CreatePOVCircle()
     else
-        print("Trigger Bot Disabled")
+        if povCircle then povCircle.Visible = false end
     end
+end, settings["POV_Enabled"] or false)
+
+mainTab:Toggle("Trigger Bot", function(state)
+    UpdateSetting("TriggerBot_Enabled", state)
 end, settings["TriggerBot_Enabled"] or false)
 
-mainTab:Toggle("Enable ESP", function(state)
-    UpdateSetting("ESP_Enabled", state)
-    if state then
-        print("ESP Enabled")
-    else
-        print("ESP Disabled")
+-- ESP Features
+mainTab:Button("ESP", function()
+    UpdateSetting("ESP_Enabled", not settings["ESP_Enabled"])
+end)
+
+mainTab:Toggle("ESP Names", function(state)
+    UpdateSetting("ESP_Names", state)
+end, settings["ESP_Names"] or false)
+
+mainTab:Toggle("ESP Boxes", function(state)
+    UpdateSetting("ESP_Boxes", state)
+end, settings["ESP_Boxes"] or false)
+
+mainTab:Toggle("ESP Health", function(state)
+    UpdateSetting("ESP_Health", state)
+end, settings["ESP_Health"] or false)
+
+mainTab:Toggle("ESP Tracers", function(state)
+    UpdateSetting("ESP_Tracers", state)
+end, settings["ESP_Tracers"] or false)
+
+-- Function to create ESP for player names visible through walls
+local function CreateESP(player)
+    local character = player.Character
+    if not character or not player.Character:FindFirstChild("Head") then return end
+
+    -- Create a BillboardGui to display the player's name above their head
+    local billboardGui = Instance.new("BillboardGui")
+    billboardGui.Parent = character.Head
+    billboardGui.Adornee = character.Head
+    billboardGui.Size = UDim2.new(0, 100, 0, 50)
+    billboardGui.StudsOffset = Vector3.new(0, 2, 0)  -- Adjust the height above the player's head
+    billboardGui.AlwaysOnTop = true
+
+    local textLabel = Instance.new("TextLabel")
+    textLabel.Parent = billboardGui
+    textLabel.Size = UDim2.new(1, 0, 1, 0)
+    textLabel.BackgroundTransparency = 1
+    textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    textLabel.TextStrokeTransparency = 0.8
+    textLabel.Text = player.Name
+    textLabel.TextScaled = true -- Ensure all names are the same size
+    textLabel.TextStrokeTransparency = 0.5
+end
+
+-- Function to update ESP names
+local function UpdateESP()
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= Players.LocalPlayer then
+            if settings["ESP_Names"] then
+                CreateESP(player)
+            else
+                if player.Character and player.Character:FindFirstChild("Head") then
+                    -- If ESP is off, remove the BillboardGui
+                    local billboardGui = player.Character.Head:FindFirstChildOfClass("BillboardGui")
+                    if billboardGui then
+                        billboardGui:Destroy()
+                    end
+                end
+            end
+        end
     end
-end, settings["ESP_Enabled"] or false)
+end
+
+-- Update ESP when players are loaded into the game
+Players.PlayerAdded:Connect(function(player)
+    player.CharacterAdded:Connect(function()
+        UpdateESP()
+    end)
+end)
+
+-- Continuously check and update ESP for players
+RunService.Heartbeat:Connect(function()
+    if settings["ESP_Names"] then
+        UpdateESP()
+    end
+end)
+
+-- Function to get the closest player and prioritize locking onto the torso or HumanoidRootPart
+local function GetClosestPlayer()
+    local closestPlayer, minDistance = nil, math.huge
+    local localPlayer = Players.LocalPlayer
+    local character = localPlayer.Character
+    if not character then return nil end
+
+    local rootPart = character:FindFirstChild("Head")
+    if not rootPart then return nil end
+
+    local params = RaycastParams.new()
+    params.FilterDescendantsInstances = {character}
+    params.FilterType = Enum.RaycastFilterType.Exclude
+
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= localPlayer and player.Character then
+            local targetPart = player.Character:FindFirstChild("UpperTorso") or player.Character:FindFirstChild("HumanoidRootPart") -- Try to prioritize the torso
+            if targetPart then
+                local distance = (rootPart.Position - targetPart.Position).Magnitude
+                if distance < minDistance then
+                    if settings["WallCheck"] then
+                        local ray = workspace:Raycast(Camera.CFrame.Position, (targetPart.Position - Camera.CFrame.Position).Unit * 1000, params)
+                        if ray and ray.Instance and ray.Instance:IsDescendantOf(player.Character) then
+                            closestPlayer = targetPart
+                            minDistance = distance
+                        end
+                    else
+                        closestPlayer = targetPart
+                        minDistance = distance
+                    end
+                end
+            end
+        end
+    end
+    return closestPlayer
+end
+
+RunService.Heartbeat:Connect(function()
+    if aimbotEnabled then
+        local target = GetClosestPlayer()
+        if target then
+            local targetPosition = target.Position + Vector3.new(0, 2, 0) -- Aim higher on the torso
+            
+            -- For PC (Aimbot locks onto the nearest player you're looking at, without smooth aiming)
+            if isPC then
+                if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
+                    aimingAtPlayer = target  -- Lock onto the target
+                    local screenPos = Camera:WorldToScreenPoint(targetPosition)
+                    local distance = (Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2) - Vector2.new(screenPos.X, screenPos.Y)).Magnitude
+                    if distance <= povCircle.Radius then
+                        Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetPosition)
+                    end
+                elseif aimingAtPlayer then
+                    -- Release the lock when right-click is released
+                    aimingAtPlayer = nil
+                end
+            end
+
+            -- For Mobile (Auto-lock onto nearest enemy with stronger aim assist)
+            if isMobile then
+                Camera.CFrame = Camera.CFrame:Lerp(CFrame.lookAt(Camera.CFrame.Position, targetPosition), 0.5) -- Easier, stronger aim assist
+            end
+
+            -- TriggerBot logic
+            if settings["TriggerBot_Enabled"] then
+                mouse1click() -- Trigger Bot logic
+            end
+        end
+    end
+
+    if povCircle then
+        povCircle.Visible = povEnabled
+    end
+end)
+
+-- Function to show or hide the UI based on the selected key
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == uiVisibilityButton then
+        if win.Visible then
+            win.Visible = false
+        else
+            win.Visible = true
+        end
+    end
+end)
+
+-- Client Tab: Walk Speed Modifier
+clientTab:TextBox("Walk Speed", "Enter a number to change walk speed", function(value)
+    local speed = tonumber(value)
+    if speed then
+        game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = speed
+    end
+end)
+
+-- Client Tab: FOV Slider
+clientTab:Slider("FOV", 70, 120, Camera.FieldOfView, function(value)
+    Camera.FieldOfView = value
+end)
+
+-- Misc Tab: Add whatever miscellaneous functions here
+miscTab:Label("Add your own custom scripts here")
