@@ -1,3 +1,5 @@
+print(" on - off ")
+
 local aimbotEnabled = settings["Aimbot_Enabled"] or false
 local isRightClicking = false
 local closestPlayer = nil
