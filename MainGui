@@ -1,3 +1,4 @@
+
 local VLib = {RainbowColorValue = 0, HueSelectionPosition = 0}
 function zigzag(X)
 	return math.acos(math.cos(X * math.pi)) / math.pi
@@ -13,23 +14,6 @@ coroutine.wrap(
 	function()
 		while wait() do
 			counter = counter + 0.002
-		end
-	end
-)()
-
-coroutine.wrap(
-	function()
-		while wait() do
-			VLib.RainbowColorValue = VLib.RainbowColorValue + 1 / 255
-			VLib.HueSelectionPosition = VLib.HueSelectionPosition + 1
-
-			if VLib.RainbowColorValue >= 1 then
-				VLib.RainbowColorValue = 0
-			end
-
-			if VLib.HueSelectionPosition == 80 then
-				VLib.HueSelectionPosition = 0
-			end
 		end
 	end
 )()
