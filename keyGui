@@ -81,7 +81,7 @@ end)
 -- Functionality to execute code when the correct key is entered
 TextBox.FocusLost:Connect(function(enteredText)
     if enteredText == "correct-key" then
-        loadstring(game:HttpGet("https://pastebin.com/yFELXKBz"))() -- replace
+       loadstring(gameHttpGet("https://github.com/VoltexHub/VoltexUniversal/raw/main/MainHub"))() -- replace
     else
         print("Incorrect key entered!")
     end
