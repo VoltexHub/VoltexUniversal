@@ -1,5 +1,5 @@
+-- loadstring: loadstring(game:HttpGet("https://github.com/VoltexHub/VoltexUniversal/raw/main/keyGui"))()
 
--- Creating the GUI
 local ScreenGui = Instance.new("ScreenGui")
 local Frame = Instance.new("Frame")
 local UICorner = Instance.new("UICorner") 
