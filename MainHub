@@ -1,4 +1,4 @@
-Share
+-- loadstring(gameHttpGet("https://raw.githubusercontent.com/VoltexHub/VoltexUniversal/main/MainHub")()
 
 local HttpService = game:GetService("HttpService")
 local UserInputService = game:GetService("UserInputService")
