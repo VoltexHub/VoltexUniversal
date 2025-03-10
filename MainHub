@@ -1,279 +1,483 @@
-local function main()
+Share
 
-    local HttpService = game:GetService("HttpService")
-    local UserInputService = game:GetService("UserInputService")
-    local Players = game:GetService("Players")
-    local RunService = game:GetService("RunService")
-    local Camera = workspace.CurrentCamera
+BR
+You said:
+local HttpService = game:GetService("HttpService")
+local UserInputService = game:GetService("UserInputService")
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Camera = workspace.CurrentCamera
 
-    local configFile = "voltex_config.json"
+local configFile = "voltex_config.json"
 
-    -- Safe check if file exists
-    local function FileExists(filename)
-        local success, _ = pcall(readfile, filename)
-        return success
+-- Utility functions for config file
+local function FileExists(filename)
+    local success, _ = pcall(readfile, filename)
+    return success
+end
+
+local function EnsureConfigFile()
+    if not FileExists(configFile) then
+        writefile(configFile, HttpService:JSONEncode({}))
     end
+end
 
-    -- Ensure config file exists
-    local function EnsureConfigFile()
-        if not FileExists(configFile) then
-            writefile(configFile, HttpService:JSONEncode({})) -- Create empty config
-        end
-    end
-
-    -- Save settings
-    local function SaveConfig(settings)
+local function SaveConfig(settings)
+    if not settings["DontSaveConfig"] then
         EnsureConfigFile()
         local success, err = pcall(function()
             writefile(configFile, HttpService:JSONEncode(settings))
         end)
         if not success then warn("Error saving config:", err) end
     end
+end
 
-    -- Load settings safely
-    local function LoadConfig()
-        EnsureConfigFile()
-        local success, content = pcall(readfile, configFile)
-        if success and content and content ~= "" then
-            local successDecode, data = pcall(function() return HttpService:JSONDecode(content) end)
-            if successDecode and type(data) == "table" then
-                return data
-            else
-                warn("Error decoding config file! Resetting settings...")
-                writefile(configFile, HttpService:JSONEncode({})) -- Reset file
+local function LoadConfig()
+    EnsureConfigFile()
+    local success, content = pcall(readfile, configFile)
+    if success and content and content ~= "" then
+        local successDecode, data = pcall(function() return HttpService:JSONDecode(content) end)
+        if successDecode and type(data) == "table" then
+            return data
+        else
+            warn("Error decoding config file! Resetting settings...")
+            writefile(configFile, HttpService:JSONEncode({}))
+        end
+    end
+    return {}
+end
+
+local settings = LoadConfig()
+
+local function UpdateSetting(key, value)
+    settings[key] = value
+    SaveConfig(settings)
+end
+
+-- Load UI Library
+local VLib = loadstring(game:HttpGet("https://pastebin.com/raw/H29ijSYE"))()
+MAINTTL = "Free Voltex Hub"
+local win = VLib:Window("Universal", Color3.fromRGB(196, 40, 28), {})
+
+-- Create Tabs
+local homeTab = win:Tab("Home")
+local mainTab = win:Tab("Main")
+local supportedGamesTab = win:Tab("Supported Games")
+local miscTab = win:Tab("Misc")
+local clientTab = win:Tab("Client")
+local uiSettingsTab = win:Tab("UI Settings")
+
+-- Home Tab
+homeTab:Label("Made By: Voltex")
+homeTab:Button("Join Discord", function()
+    setclipboard("https://discord.gg/9NMFBCq7")
+end)
+
+-- UI Settings Tab
+uiSettingsTab:Button("Destroy Gui", function()
+    local gui = game.CoreGui:FindFirstChild("Library")
+    if gui then
+        gui:Destroy()
+    end
+end)
+
+local uiVisibilityButton = settings["UI_Visible"] or Enum.KeyCode.Unknown
+uiSettingsTab:Dropdown("Choose Gui Toggle Button", {"Unknown", "F", "G", "H", "J", "K", "L", "M", "N", "O", "Quote"}, function(state)
+    uiVisibilityButton = Enum.KeyCode[state]
+    UpdateSetting("UI_Visible", uiVisibilityButton)
+end, uiVisibilityButton.Name)
+
+-- "Don't Save Config" toggle
+local dontSaveConfig = settings["DontSaveConfig"] or false
+uiSettingsTab:Toggle("Don't Save Config", function(state)
+    dontSaveConfig = state
+    UpdateSetting("DontSaveConfig", state)
+end, dontSaveConfig)
+
+-- Main Tab Features
+local aimbotEnabled = settings["Aimbot_Enabled"] or false
+local povEnabled = settings["POV_Enabled"] or false
+local povSize = settings["POV_Size"] or 250
+local noRecoil = settings["NoRecoil"] or false
+local walkSpeed = settings["WalkSpeed"] or 16
+local jumpHeight = settings["JumpHeight"] or 50
+local noClip = settings["NoClip"] or false
+local godMode = settings["GodMode"] or false
+local fly = settings["Fly"] or false
+local bang = settings["Bang"] or false
+local skeletonESP = settings["SkeletonESP"] or false
+
+mainTab:Toggle("Enable Aimbot", function(state)
+    aimbotEnabled = state
+    UpdateSetting("Aimbot_Enabled", state)
+end, aimbotEnabled)
+
+mainTab:Toggle("Wall Check", function(state)
+    UpdateSetting("WallCheck", state)
+end, settings["WallCheck"] or false)
+
+mainTab:Toggle("Highlight Target", function(state)
+    UpdateSetting("HighlightTarget", state)
+end, settings["HighlightTarget"] or false)
+
+mainTab:Toggle("No-Recoil", function(state)
+    noRecoil = state
+    UpdateSetting("NoRecoil", state)
+end, noRecoil)
+
+mainTab:Toggle("Triggerbot", function(state)
+    UpdateSetting("Triggerbot", state)
+end, settings["Triggerbot"] or false)
+
+mainTab:Toggle("POV", function(state)
+    povEnabled = state
+    UpdateSetting("POV_Enabled", state)
+end, povEnabled)
+
+mainTab:Slider("POV Size", 10, 400, povSize, function(value)
+    povSize = value
+    UpdateSetting("POV_Size", povSize)
+end)
+
+-- Skeleton ESP Toggle (insert skeleton ESP logic as needed)
+mainTab:Toggle("Skeleton ESP", function(state)
+    skeletonESP = state
+    UpdateSetting("SkeletonESP", state)
+    -- Insert your Skeleton ESP logic here if desired
+end, skeletonESP)
+
+-- ESP Features
+mainTab:Toggle("ESP Names", function(state)
+    UpdateSetting("ESP_Names", state)
+end, settings["ESP_Names"] or false)
+
+mainTab:Toggle("ESP Boxes", function(state)
+    UpdateSetting("ESP_Boxes", state)
+end, settings["ESP_Boxes"] or false)
+
+mainTab:Toggle("ESP Health", function(state)
+    UpdateSetting("ESP_Health", state)
+end, settings["ESP_Health"] or false)
+
+mainTab:Toggle("ESP Tracers", function(state)
+    UpdateSetting("ESP_Tracers", state)
+end, settings["ESP_Tracers"] or false)
+
+-- Misc Tab Features
+miscTab:Toggle("Fly", function(state)
+    fly = state
+    UpdateSetting("Fly", state)
+    if fly then
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/XNEOFF/FlyGuiV3/main/FlyGuiV3.txt"))()
+    end
+end, fly)
+
+miscTab:Toggle("Bang", function(state)
+    bang = state
+    UpdateSetting("Bang", state)
+    if bang then
+        -- Load the Bang script from the provided pastebin
+        loadstring(game:HttpGet("https://pastebin.com/jabh2Kqy"))()
+    end
+end, bang)
+
+miscTab:Toggle("Hitbox Expander", function(state)
+    UpdateSetting("HitboxExpander", state)
+    if state then
+        _G.HeadSize = 20
+        _G.Disabled = true
+        RunService.RenderStepped:Connect(function()
+            if _G.Disabled then
+                for _, v in pairs(Players:GetPlayers()) do
+                    if v.Name ~= Players.LocalPlayer.Name and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
+                        pcall(function()
+                            v.Character.HumanoidRootPart.Size = Vector3.new(_G.HeadSize, _G.HeadSize, _G.HeadSize)
+                            v.Character.HumanoidRootPart.Transparency = 0.7
+                            v.Character.HumanoidRootPart.BrickColor = BrickColor.new("Really black")
+                            v.Character.HumanoidRootPart.Material = "Neon"
+                            v.Character.HumanoidRootPart.CanCollide = false
+                        end)
+                    end
+                end
+            end
+        end)
+    else
+        _G.Disabled = false
+    end
+end, settings["HitboxExpander"] or false)
+
+-- Client Tab Features
+clientTab:Slider("Jump Height", 50, 300, jumpHeight, function(value)
+    local player = Players.LocalPlayer
+    if player and player.Character and player.Character:FindFirstChild("Humanoid") then
+        player.Character.Humanoid.JumpHeight = value
+    end
+    UpdateSetting("JumpHeight", value)
+end)
+
+clientTab:Slider("Walk Speed", 10, 200, walkSpeed, function(value)
+    local player = Players.LocalPlayer
+    if player and player.Character and player.Character:FindFirstChild("Humanoid") then
+        player.Character.Humanoid.WalkSpeed = value
+    end
+    UpdateSetting("WalkSpeed", value)
+end)
+
+clientTab:Toggle("No-Clip", function(state)
+    noClip = state
+    UpdateSetting("NoClip", state)
+end, noClip)
+
+clientTab:Toggle("God Mode", function(state)
+    godMode = state
+    UpdateSetting("GodMode", state)
+    local player = Players.LocalPlayer
+    if player and player.Character and player.Character:FindFirstChild("Humanoid") then
+        if state then
+            spawn(function()
+                while godMode do
+                    pcall(function()
+                        player.Character.Humanoid.Health = math.huge
+                    end)
+                    wait(1)
+                end
+            end)
+        else
+            player.Character.Humanoid.Health = player.Character.Humanoid.MaxHealth
+        end
+    end
+end, godMode)
+
+-- Reapply No-Clip on Character Respawn
+Players.LocalPlayer.CharacterAdded:Connect(function(character)
+    character:WaitForChild("Humanoid")
+    if noClip then
+        for _, part in pairs(character:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = false
             end
         end
-        return {} -- Default empty settings
     end
+end)
 
-    local settings = LoadConfig()
+-- Create dedicated ScreenGui for ESP (to avoid interfering with UI)
+local espGui = Instance.new("ScreenGui")
+espGui.Name = "VoltexESP"
+espGui.Parent = game.CoreGui
+espGui.ResetOnSpawn = false
 
-    local function UpdateSetting(key, value)
-        settings[key] = value
-        SaveConfig(settings)
-    end
-
-    local VLib = loadstring(game:HttpGet("https://pastebin.com/raw/H29ijSYE"))() -- Correct pastebin link for the UI library
-
-    MAINTTL = "Free Voltex Hub"
-
-    local win = VLib:Window("Universal", Color3.fromRGB(196, 40, 28), {})
-
-    -- Tabs
-    local homeTab = win:Tab("Home")
-    local mainTab = win:Tab("Main")
-    local supportedGamesTab = win:Tab("Supported Games")
-    local miscTab = win:Tab("Misc")
-    local clientTab = win:Tab("Client")
-    local uiSettingsTab = win:Tab("UI Settings")
-
-    -- Home Tab
-    homeTab:Label("Made By: Voltex")
-    homeTab:Button("Join Discord", function()
-        setclipboard("https://discord.gg/9NMFBCq7")
-    end)
-
-    -- UI Settings Tab
-    uiSettingsTab:Button("Destroy Gui", function()
-        game.CoreGui["Library"]:Destroy()
-    end)
-
-    local uiVisibilityButton = settings["UI_Visible"] or Enum.KeyCode.Unknown
-    uiSettingsTab:Dropdown("Choose Gui Toggle Button", {"Unknown", "F", "G", "H", "J", "K", "L", "M", "N", "O", "Quote"}, function(state)
-        uiVisibilityButton = Enum.KeyCode[state]
-        UpdateSetting("UI_Visible", uiVisibilityButton)
-    end, uiVisibilityButton.Name)
-
-    -- Main Tab Features
-    local aimbotEnabled = settings["Aimbot_Enabled"] or false
-    local povEnabled = settings["POV_Enabled"] or false
-    local povSize = settings["POV_Size"] or 250
-    local noRecoil = settings["NoRecoil"] or false
-    local walkSpeed = settings["WalkSpeed"] or 16
-    local jumpHeight = settings["JumpHeight"] or 50
-    local noClip = settings["NoClip"] or false
-    local godMode = settings["GodMode"] or false
-    local fly = settings["Fly"] or false
-    local bang = settings["Bang"] or false
-
-    mainTab:Toggle("Enable Aimbot", function(state)
-        aimbotEnabled = state
-        UpdateSetting("Aimbot_Enabled", state)
-    end, aimbotEnabled)
-
-    mainTab:Toggle("Wall Check", function(state)
-        UpdateSetting("WallCheck", state)
-    end, settings["WallCheck"] or false)
-
-    mainTab:Toggle("Highlight Target", function(state)
-        UpdateSetting("HighlightTarget", state)
-    end, settings["HighlightTarget"] or false)
-
-    mainTab:Toggle("No-Recoil", function(state)
-        noRecoil = state
-        UpdateSetting("NoRecoil", state)
-    end, noRecoil)
-
-    mainTab:Toggle("POV", function(state)
-        povEnabled = state
-        UpdateSetting("POV_Enabled", state)
-    end, povEnabled)
-
-    mainTab:Slider("POV Size", 10, 400, povSize, function(value)
-        povSize = value
-        UpdateSetting("POV_Size", povSize)
-    end)
-
-    -- ESP Features
-    mainTab:Toggle("ESP Names", function(state)
-        UpdateSetting("ESP_Names", state)
-    end, settings["ESP_Names"] or false)
-
-    mainTab:Toggle("ESP Boxes", function(state)
-        UpdateSetting("ESP_Boxes", state)
-    end, settings["ESP_Boxes"] or false)
-
-    mainTab:Toggle("ESP Health", function(state)
-        UpdateSetting("ESP_Health", state)
-    end, settings["ESP_Health"] or false)
-
-    mainTab:Toggle("ESP Tracers", function(state)
-        UpdateSetting("ESP_Tracers", state)
-    end, settings["ESP_Tracers"] or false)
-
-    -- Misc Tab Features
-    miscTab:Toggle("Fly", function(state)
-        fly = state
-        UpdateSetting("Fly", state)
-        -- Fly logic here (if any)
-    end, fly)
-
-    miscTab:Toggle("Bang", function(state)
-        bang = state
-        UpdateSetting("Bang", state)
-        -- Bang logic here (e.g., explosions)
-    end, bang)
-
-    -- Client Tab Features
-    clientTab:Slider("Jump Height", 50, 300, jumpHeight, function(value)
-        game.Players.LocalPlayer.Character.Humanoid.JumpHeight = value
-        UpdateSetting("JumpHeight", value)
-    end)
-
-    clientTab:Slider("Walk Speed", 10, 200, walkSpeed, function(value)
-        game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = value
-        UpdateSetting("WalkSpeed", value)
-    end)
-
-    clientTab:Toggle("No-Clip", function(state)
-        noClip = state
-        UpdateSetting("NoClip", state)
-        -- No-clip logic here (if any)
-    end, noClip)
-
-    clientTab:Toggle("God Mode", function(state)
-        godMode = state
-        UpdateSetting("GodMode", state)
-        -- God Mode logic (e.g., make player invincible)
-        local player = game.Players.LocalPlayer
-        if player and player.Character then
-            if state then
-                player.Character.Humanoid.Health = math.huge -- God mode (invincible)
-            else
-                -- Turn off God Mode (restore default health)
-                player.Character.Humanoid.Health = player.Character.Humanoid.MaxHealth
-            end
-        end
-    end, godMode)
-
-    -- AIMBOT IMPLEMENTATION
-    local function isPlayerVisible(targetPlayer)
-        if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            local targetPosition = targetPlayer.Character.HumanoidRootPart.Position
-            local cameraPosition = Camera.CFrame.Position
-            local ray = Ray.new(cameraPosition, (targetPosition - cameraPosition).unit * (targetPosition - cameraPosition).Magnitude)
-            local hitPart = workspace:FindPartOnRay(ray, game.Players.LocalPlayer.Character, false, true)
-            return not hitPart or hitPart.Parent == targetPlayer.Character
-        end
-        return false
-    end
-
-    local function getClosestPlayer()
-        local closestPlayer = nil
-        local closestDistance = povSize
+-- AIMBOT Helper Functions
+local function isPlayerVisible(targetPlayer)
+    if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        local targetPosition = targetPlayer.Character.HumanoidRootPart.Position
         local cameraPosition = Camera.CFrame.Position
-        local cameraLookDirection = Camera.CFrame.LookVector
+        local ray = Ray.new(cameraPosition, (targetPosition - cameraPosition).unit * (targetPosition - cameraPosition).Magnitude)
+        local hitPart = workspace:FindPartOnRay(ray, Players.LocalPlayer.Character, false, true)
+        return not hitPart or hitPart.Parent == targetPlayer.Character
+    end
+    return false
+end
 
-        for _, targetPlayer in ipairs(Players:GetPlayers()) do
-            if targetPlayer ~= game.Players.LocalPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                local rootPart = targetPlayer.Character.HumanoidRootPart
-                local screenPoint = Camera:WorldToViewportPoint(rootPart.Position)
-                local mousePosition = Vector2.new(UserInputService:GetMouseLocation().X, UserInputService:GetMouseLocation().Y)
-                local distance = (mousePosition - Vector2.new(screenPoint.X, screenPoint.Y)).Magnitude
-                local directionToPlayer = (rootPart.Position - cameraPosition).unit
-                local dotProduct = cameraLookDirection:Dot(directionToPlayer)
+local function getClosestPlayer()
+    local closestPlayer = nil
+    local closestDistance = povSize
+    local cameraPosition = Camera.CFrame.Position
+    local cameraLookDirection = Camera.CFrame.LookVector
 
-                if distance <= povSize and dotProduct > 0 then
-                    if not settings["WallCheck"] or isPlayerVisible(targetPlayer) then
-                        if not closestPlayer or distance < closestDistance then
-                            closestPlayer = targetPlayer
-                            closestDistance = distance
-                        end
+    for _, targetPlayer in ipairs(Players:GetPlayers()) do
+        if targetPlayer ~= Players.LocalPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            local rootPart = targetPlayer.Character.HumanoidRootPart
+            local screenPoint = Camera:WorldToViewportPoint(rootPart.Position)
+            local mousePos = Vector2.new(UserInputService:GetMouseLocation().X, UserInputService:GetMouseLocation().Y)
+            local distance = (mousePos - Vector2.new(screenPoint.X, screenPoint.Y)).Magnitude
+            local directionToPlayer = (rootPart.Position - cameraPosition).unit
+            local dotProduct = Camera.CFrame.LookVector:Dot(directionToPlayer)
+            if distance <= povSize and dotProduct > 0 then
+                if not settings["WallCheck"] or isPlayerVisible(targetPlayer) then
+                    if not closestPlayer or distance < closestDistance then
+                        closestPlayer = targetPlayer
+                        closestDistance = distance
                     end
                 end
             end
         end
-        return closestPlayer
     end
-
-    -- ESP DRAWING
-    local function drawESP(targetPlayer)
-        if targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            local rootPart = targetPlayer.Character.HumanoidRootPart
-            local screenPosition, onScreen = Camera:WorldToViewportPoint(rootPart.Position)
-
-            if onScreen then
-                if settings["ESP_Boxes"] then
-                    local box = Instance.new("Frame")
-                    box.Size = UDim2.new(0, 100, 0, 200)
-                    box.Position = UDim2.new(0, screenPosition.X - 50, 0, screenPosition.Y - 100)
-                    box.BorderSizePixel = 1
-                    box.BorderColor3 = Color3.fromRGB(255, 0, 0)
-                    box.BackgroundTransparency = 1
-                    box.Parent = game.CoreGui
-                end
-                if settings["ESP_Names"] then
-                    local nameLabel = Instance.new("TextLabel")
-                    nameLabel.Text = targetPlayer.Name
-                    nameLabel.Position = UDim2.new(0, screenPosition.X - 50, 0, screenPosition.Y - 120)
-                    nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-                    nameLabel.BackgroundTransparency = 1
-                    nameLabel.TextSize = 14
-                    nameLabel.Parent = game.CoreGui
-                end
-            end
-        end
-    end
-
-    RunService.RenderStepped:Connect(function()
-        for _, targetPlayer in ipairs(Players:GetPlayers()) do
-            if targetPlayer ~= game.Players.LocalPlayer then
-                drawESP(targetPlayer)
-            end
-        end
-    end)
-
-    RunService.RenderStepped:Connect(function()
-        if aimbotEnabled and UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
-            local closestPlayer = getClosestPlayer()
-            if closestPlayer then
-                local rootPart = closestPlayer.Character.HumanoidRootPart
-                Camera.CFrame = CFrame.new(Camera.CFrame.Position, rootPart.Position)
-            end
-        end
-    end)
-
-    print("✅")
+    return closestPlayer
 end
 
-main()
+-- ESP Drawing Functions
+local espElements = {}
+
+local function clearESP(targetPlayer)
+    if espElements[targetPlayer] then
+        for _, element in pairs(espElements[targetPlayer]) do
+            if element and element.Parent then
+                element:Destroy()
+            end
+        end
+        espElements[targetPlayer] = nil
+    end
+end
+
+local function drawESP(targetPlayer)
+    clearESP(targetPlayer)
+    espElements[targetPlayer] = {}
+    if targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        local rootPart = targetPlayer.Character.HumanoidRootPart
+        local screenPosition, onScreen = Camera:WorldToViewportPoint(rootPart.Position)
+        if onScreen then
+            -- ESP Boxes: compute a bounding box based on Head and HRP positions
+            if settings["ESP_Boxes"] then
+                if targetPlayer.Character:FindFirstChild("Head") and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                    local headPos, headOn = Camera:WorldToViewportPoint(targetPlayer.Character.Head.Position)
+                    local hrpPos, hrpOn = Camera:WorldToViewportPoint(targetPlayer.Character.HumanoidRootPart.Position)
+                    if headOn and hrpOn then
+                        local boxHeight = math.abs(hrpPos.Y - headPos.Y) * 1.5
+                        local boxWidth = boxHeight * 0.6
+                        local box = Instance.new("Frame")
+                        box.Size = UDim2.new(0, boxWidth, 0, boxHeight)
+                        box.Position = UDim2.new(0, headPos.X - boxWidth/2, 0, headPos.Y - boxHeight*0.25)
+                        box.BorderSizePixel = 1
+                        box.BorderColor3 = Color3.new(1, 0, 0)
+                        box.BackgroundTransparency = 1
+                        box.ZIndex = 0
+                        box.Parent = espGui
+                        table.insert(espElements[targetPlayer], box)
+                    end
+                end
+            end
+            if settings["ESP_Names"] then
+                local nameLabel = Instance.new("TextLabel")
+                nameLabel.Text = targetPlayer.Name
+                nameLabel.Position = UDim2.new(0, screenPosition.X - 50, 0, screenPosition.Y - 140)
+                nameLabel.TextColor3 = Color3.new(1, 1, 1)  -- White text
+                nameLabel.BackgroundTransparency = 1
+                nameLabel.TextSize = 14
+                nameLabel.ZIndex = 0
+                nameLabel.Parent = espGui
+                table.insert(espElements[targetPlayer], nameLabel)
+            end
+            if settings["ESP_Health"] and targetPlayer.Character:FindFirstChild("Humanoid") then
+                local humanoid = targetPlayer.Character.Humanoid
+                local healthLabel = Instance.new("TextLabel")
+                healthLabel.Text = "HP: " .. tostring(humanoid.Health)
+                healthLabel.Position = UDim2.new(0, screenPosition.X - 50, 0, screenPosition.Y - 160)
+                healthLabel.TextColor3 = Color3.new(1, 1, 1)  -- White text
+                healthLabel.BackgroundTransparency = 1
+                healthLabel.TextSize = 14
+                healthLabel.ZIndex = 0
+                healthLabel.Parent = espGui
+                table.insert(espElements[targetPlayer], healthLabel)
+            end
+            if settings["ESP_Tracers"] then
+                local viewportSize = Camera.ViewportSize
+                local bottomCenter = Vector2.new(viewportSize.X/2, viewportSize.Y)
+                local targetPos = Vector2.new(screenPosition.X, screenPosition.Y)
+                local diff = targetPos - bottomCenter
+                local distance = diff.Magnitude
+                local angle = math.deg(math.atan2(diff.Y, diff.X))
+                local tracer = Instance.new("Frame")
+                tracer.Size = UDim2.new(0, distance, 0, 2)
+                tracer.Position = UDim2.new(0, bottomCenter.X, 0, bottomCenter.Y)
+                tracer.AnchorPoint = Vector2.new(0, 0.5)
+                tracer.BackgroundColor3 = Color3.fromRGB(255, 255, 0)
+                tracer.BackgroundTransparency = 0.5
+                tracer.Rotation = angle
+                tracer.ZIndex = 0
+                tracer.Parent = espGui
+                table.insert(espElements[targetPlayer], tracer)
+            end
+        end
+    end
+end
+
+RunService.RenderStepped:Connect(function()
+    for _, targetPlayer in ipairs(Players:GetPlayers()) do
+        if targetPlayer ~= Players.LocalPlayer then
+            drawESP(targetPlayer)
+        end
+    end
+end)
+
+-- GUI Toggle: Toggle the UI library's ScreenGui ("Library") using the selected key.
+UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
+    if not gameProcessedEvent and input.KeyCode == uiVisibilityButton then
+        local gui = game.CoreGui:FindFirstChild("Library")
+        if gui then
+            gui.Enabled = not gui.Enabled
+        end
+    end
+end)
+
+-- AIMBOT: When right mouse is held, point the camera toward the closest target.
+RunService.RenderStepped:Connect(function()
+    if aimbotEnabled and UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
+        local closestPlayer = getClosestPlayer()
+        if closestPlayer and closestPlayer.Character and closestPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            local rootPart = closestPlayer.Character.HumanoidRootPart
+            Camera.CFrame = CFrame.new(Camera.CFrame.Position, rootPart.Position)
+        end
+    end
+end)
+
+-- TRIGGERBOT: When target is near the crosshair, simulate a mouse click.
+local function triggerbot()
+    local mousePos = UserInputService:GetMouseLocation()
+    local target = getClosestPlayer()
+    if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+        local rootPart = target.Character.HumanoidRootPart
+        local screenPoint, onScreen = Camera:WorldToViewportPoint(rootPart.Position)
+        if onScreen then
+            local distance = (Vector2.new(screenPoint.X, screenPoint.Y) - Vector2.new(mousePos.X, mousePos.Y)).Magnitude
+            if distance < 10 then
+                -- Use VirtualInputManager if available to simulate a mouse click instead of causing a jump
+                local success, vim = pcall(function() return game:GetService("VirtualInputManager") end)
+                if success and vim then
+                    vim:SendMouseButtonEvent(mousePos.X, mousePos.Y, 0, true, game, 0)
+                    vim:SendMouseButtonEvent(mousePos.X, mousePos.Y, 0, false, game, 0)
+                end
+            end
+        end
+    end
+end
+
+RunService.RenderStepped:Connect(function()
+    if settings["Triggerbot"] then
+        triggerbot()
+    end
+end)
+
+-- NO-CLIP: Continuously disable collisions for the local player's character.
+local function noClipFunction()
+    local player = Players.LocalPlayer
+    if player and player.Character then
+        for _, part in pairs(player.Character:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = false
+            end
+        end
+    end
+end
+
+RunService.Stepped:Connect(function()
+    if noClip then
+        noClipFunction()
+    end
+end)
+
+-- POV Circle: Create a red, hollow circle in the center of the screen if enabled.
+if povEnabled then
+    local playerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
+    local povCircle = Instance.new("Frame")
+    povCircle.Size = UDim2.new(0, povSize, 0, povSize)
+    povCircle.Position = UDim2.new(0.5, -povSize/2, 0.5, -povSize/2)
+    povCircle.BackgroundTransparency = 1
+    povCircle.Parent = playerGui
+    povCircle.ZIndex = 10
+    povCircle.Name = "POVCircle"
+    local stroke = Instance.new("UIStroke", povCircle)
+    stroke.Color = Color3.new(1, 0, 0)
+    stroke.Thickness = 3
+end
+
+print("✅")
