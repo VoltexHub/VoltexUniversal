@@ -8,7 +8,6 @@ local Camera = workspace.CurrentCamera
 
 local configFile = "voltex_config.json"
 
--- Utility functions for config file
 local function FileExists(filename)
     local success, _ = pcall(readfile, filename)
     return success
@@ -52,12 +51,10 @@ local function UpdateSetting(key, value)
     SaveConfig(settings)
 end
 
--- Load UI Library
 local VLib = loadstring(game:HttpGet("https://pastebin.com/raw/H29ijSYE"))()
 MAINTTL = "Free Voltex Hub"
 local win = VLib:Window("Universal", Color3.fromRGB(196, 40, 28), {})
 
--- Create Tabs
 local homeTab = win:Tab("Home")
 local mainTab = win:Tab("Main")
 local supportedGamesTab = win:Tab("Supported Games")
@@ -65,13 +62,11 @@ local miscTab = win:Tab("Misc")
 local clientTab = win:Tab("Client")
 local uiSettingsTab = win:Tab("UI Settings")
 
--- Home Tab
 homeTab:Label("Made By: Voltex")
 homeTab:Button("Join Discord", function()
     setclipboard("https://discord.gg/9NMFBCq7")
 end)
 
--- UI Settings Tab
 uiSettingsTab:Button("Destroy Gui", function()
     local gui = game.CoreGui:FindFirstChild("Library")
     if gui then
@@ -85,14 +80,12 @@ uiSettingsTab:Dropdown("Choose Gui Toggle Button", {"Unknown", "F", "G", "H", "J
     UpdateSetting("UI_Visible", uiVisibilityButton)
 end, uiVisibilityButton.Name)
 
--- "Don't Save Config" toggle
 local dontSaveConfig = settings["DontSaveConfig"] or false
 uiSettingsTab:Toggle("Don't Save Config", function(state)
     dontSaveConfig = state
     UpdateSetting("DontSaveConfig", state)
 end, dontSaveConfig)
 
--- Main Tab Features
 local aimbotEnabled = settings["Aimbot_Enabled"] or false
 local povEnabled = settings["POV_Enabled"] or false
 local povSize = settings["POV_Size"] or 250
@@ -137,14 +130,11 @@ mainTab:Slider("POV Size", 10, 400, povSize, function(value)
     UpdateSetting("POV_Size", povSize)
 end)
 
--- Skeleton ESP Toggle (insert skeleton ESP logic as needed)
 mainTab:Toggle("Skeleton ESP", function(state)
     skeletonESP = state
     UpdateSetting("SkeletonESP", state)
-    -- Insert your Skeleton ESP logic here if desired
 end, skeletonESP)
 
--- ESP Features
 mainTab:Toggle("ESP Names", function(state)
     UpdateSetting("ESP_Names", state)
 end, settings["ESP_Names"] or false)
@@ -161,7 +151,6 @@ mainTab:Toggle("ESP Tracers", function(state)
     UpdateSetting("ESP_Tracers", state)
 end, settings["ESP_Tracers"] or false)
 
--- Misc Tab Features
 miscTab:Toggle("Fly", function(state)
     fly = state
     UpdateSetting("Fly", state)
@@ -174,7 +163,6 @@ miscTab:Toggle("Bang", function(state)
     bang = state
     UpdateSetting("Bang", state)
     if bang then
-        -- Load the Bang script from the provided pastebin
         loadstring(game:HttpGet("https://pastebin.com/jabh2Kqy"))()
     end
 end, bang)
@@ -204,7 +192,6 @@ miscTab:Toggle("Hitbox Expander", function(state)
     end
 end, settings["HitboxExpander"] or false)
 
--- Client Tab Features
 clientTab:Slider("Jump Height", 50, 300, jumpHeight, function(value)
     local player = Players.LocalPlayer
     if player and player.Character and player.Character:FindFirstChild("Humanoid") then
@@ -246,7 +233,6 @@ clientTab:Toggle("God Mode", function(state)
     end
 end, godMode)
 
--- Reapply No-Clip on Character Respawn
 Players.LocalPlayer.CharacterAdded:Connect(function(character)
     character:WaitForChild("Humanoid")
     if noClip then
@@ -258,13 +244,11 @@ Players.LocalPlayer.CharacterAdded:Connect(function(character)
     end
 end)
 
--- Create dedicated ScreenGui for ESP (to avoid interfering with UI)
 local espGui = Instance.new("ScreenGui")
 espGui.Name = "VoltexESP"
 espGui.Parent = game.CoreGui
 espGui.ResetOnSpawn = false
 
--- AIMBOT Helper Functions
 local function isPlayerVisible(targetPlayer)
     if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
         local targetPosition = targetPlayer.Character.HumanoidRootPart.Position
@@ -303,7 +287,6 @@ local function getClosestPlayer()
     return closestPlayer
 end
 
--- ESP Drawing Functions
 local espElements = {}
 
 local function clearESP(targetPlayer)
@@ -324,7 +307,6 @@ local function drawESP(targetPlayer)
         local rootPart = targetPlayer.Character.HumanoidRootPart
         local screenPosition, onScreen = Camera:WorldToViewportPoint(rootPart.Position)
         if onScreen then
-            -- ESP Boxes: compute a bounding box based on Head and HRP positions
             if settings["ESP_Boxes"] then
                 if targetPlayer.Character:FindFirstChild("Head") and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
                     local headPos, headOn = Camera:WorldToViewportPoint(targetPlayer.Character.Head.Position)
@@ -348,7 +330,7 @@ local function drawESP(targetPlayer)
                 local nameLabel = Instance.new("TextLabel")
                 nameLabel.Text = targetPlayer.Name
                 nameLabel.Position = UDim2.new(0, screenPosition.X - 50, 0, screenPosition.Y - 140)
-                nameLabel.TextColor3 = Color3.new(1, 1, 1)  -- White text
+                nameLabel.TextColor3 = Color3.new(1, 1, 1)  
                 nameLabel.BackgroundTransparency = 1
                 nameLabel.TextSize = 14
                 nameLabel.ZIndex = 0
@@ -360,7 +342,7 @@ local function drawESP(targetPlayer)
                 local healthLabel = Instance.new("TextLabel")
                 healthLabel.Text = "HP: " .. tostring(humanoid.Health)
                 healthLabel.Position = UDim2.new(0, screenPosition.X - 50, 0, screenPosition.Y - 160)
-                healthLabel.TextColor3 = Color3.new(1, 1, 1)  -- White text
+                healthLabel.TextColor3 = Color3.new(1, 1, 1) 
                 healthLabel.BackgroundTransparency = 1
                 healthLabel.TextSize = 14
                 healthLabel.ZIndex = 0
@@ -397,7 +379,6 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- GUI Toggle: Toggle the UI library's ScreenGui ("Library") using the selected key.
 UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
     if not gameProcessedEvent and input.KeyCode == uiVisibilityButton then
         local gui = game.CoreGui:FindFirstChild("Library")
@@ -407,7 +388,6 @@ UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
     end
 end)
 
--- AIMBOT: When right mouse is held, point the camera toward the closest target.
 RunService.RenderStepped:Connect(function()
     if aimbotEnabled and UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
         local closestPlayer = getClosestPlayer()
@@ -418,7 +398,6 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- TRIGGERBOT: When target is near the crosshair, simulate a mouse click.
 local function triggerbot()
     local mousePos = UserInputService:GetMouseLocation()
     local target = getClosestPlayer()
@@ -428,7 +407,6 @@ local function triggerbot()
         if onScreen then
             local distance = (Vector2.new(screenPoint.X, screenPoint.Y) - Vector2.new(mousePos.X, mousePos.Y)).Magnitude
             if distance < 10 then
-                -- Use VirtualInputManager if available to simulate a mouse click instead of causing a jump
                 local success, vim = pcall(function() return game:GetService("VirtualInputManager") end)
                 if success and vim then
                     vim:SendMouseButtonEvent(mousePos.X, mousePos.Y, 0, true, game, 0)
@@ -445,7 +423,6 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- NO-CLIP: Continuously disable collisions for the local player's character.
 local function noClipFunction()
     local player = Players.LocalPlayer
     if player and player.Character then
@@ -463,7 +440,6 @@ RunService.Stepped:Connect(function()
     end
 end)
 
--- POV Circle: Create a red, hollow circle in the center of the screen if enabled.
 if povEnabled then
     local playerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
     local povCircle = Instance.new("Frame")
